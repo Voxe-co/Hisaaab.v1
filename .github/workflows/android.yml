@@ -32,11 +32,7 @@ jobs:
         fi
 
     - name: Grant execute permission for gradlew
-      run: |
-        echo "=== Debugging app/build.gradle.kts ==="
-        cat app/build.gradle.kts
-        echo "======================================"
-        chmod +x gradlew
+      run: chmod +x gradlew
 
     - name: Build debug APK
       run: ./gradlew assembleDebug
