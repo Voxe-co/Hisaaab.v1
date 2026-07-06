@@ -1,4 +1,6 @@
-# Treat Gradle wrapper JAR as a binary file to prevent corruption from line ending conversion
+# Treat all JAR files as binary to prevent corruption from line ending conversion
+*.jar binary
+
 gradle/wrapper/gradle-wrapper.jar binary
 gradlew text eol=lf
 gradlew.bat text eol=crlf
