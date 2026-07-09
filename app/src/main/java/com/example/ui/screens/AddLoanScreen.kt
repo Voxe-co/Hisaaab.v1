@@ -37,6 +37,7 @@ import com.example.ui.theme.EmeraldGreen
 import com.example.util.DummyData
 import com.example.viewmodel.AddLoanViewModel
 import java.util.Calendar
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,12 +72,16 @@ fun AddLoanScreen(
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    // Form validation check
-    val isFormValid = borrowerName.isNotBlank() && 
-                      loanAmount.isNotBlank() && 
-                      interestRate.isNotBlank()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Form validation check: name not empty, principal > 0, interest rate >= 0, loan date valid
+    val amt = loanAmount.toDoubleOrNull() ?: 0.0
+    val rate = interestRate.toDoubleOrNull() ?: -1.0
+    val isFormValid = borrowerName.isNotBlank() && amt > 0.0 && rate >= 0.0 && loanDate > 0L
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -328,7 +333,11 @@ fun AddLoanScreen(
                 enabled = isFormValid && !isSaving,
                 onClick = {
                     viewModel.saveLoan {
-                        onNavigateBack()
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Loan agreement successfully recorded!")
+                            kotlinx.coroutines.delay(800)
+                            onNavigateBack()
+                        }
                     }
                 },
                 modifier = Modifier

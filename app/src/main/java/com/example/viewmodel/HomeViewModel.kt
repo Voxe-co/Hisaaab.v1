@@ -567,4 +567,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             createParsedLoan(parsed.borrowerName, parsed.amount, parsed.interestRate)
         }
     }
+
+    val lastDeletedLoanNameFlow = repository.lastDeletedLoanNameFlow
+
+    fun undoDeleteLoan() {
+        viewModelScope.launch {
+            repository.undoLastDeletedLoan()
+        }
+    }
 }

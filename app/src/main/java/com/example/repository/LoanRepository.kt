@@ -70,9 +70,63 @@ class LoanRepository(private val loanDao: LoanDao) {
         recalculateAndSyncInterestRecords(loan.id)
     }
 
+    // Support Undo Loan Deletion
+    private var lastDeletedLoan: LoanEntity? = null
+    private var lastDeletedPayments: List<PaymentEntity> = emptyList()
+    private var lastDeletedInterestRecords: List<MonthlyInterestRecord> = emptyList()
+    val lastDeletedLoanNameFlow = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    fun saveDeletedLoanState(loan: LoanEntity, payments: List<PaymentEntity>, records: List<MonthlyInterestRecord>) {
+        lastDeletedLoan = loan
+        lastDeletedPayments = payments
+        lastDeletedInterestRecords = records
+    }
+
+    suspend fun undoLastDeletedLoan(): String? {
+        val loan = lastDeletedLoan ?: return null
+        val payments = lastDeletedPayments
+        val records = lastDeletedInterestRecords
+        
+        restoreLoanWithPayments(loan, payments, records)
+        
+        lastDeletedLoan = null
+        lastDeletedPayments = emptyList()
+        lastDeletedInterestRecords = emptyList()
+        
+        return loan.borrowerName
+    }
+
     suspend fun deleteLoan(loan: LoanEntity) {
         loanDao.deleteLoan(loan)
         loanDao.deleteInterestRecordsForLoan(loan.id)
+    }
+
+    suspend fun deleteLoanWithPayments(loanId: Long): Triple<LoanEntity, List<PaymentEntity>, List<MonthlyInterestRecord>>? {
+        val loan = loanDao.getLoanById(loanId) ?: return null
+        val payments = loanDao.getPaymentsForLoanSync(loanId)
+        val interestRecords = loanDao.getInterestRecordsForLoanSync(loanId)
+        
+        loanDao.deleteLoan(loan)
+        loanDao.deleteInterestRecordsForLoan(loanId)
+        for (payment in payments) {
+            loanDao.deletePayment(payment)
+        }
+        
+        saveDeletedLoanState(loan, payments, interestRecords)
+        lastDeletedLoanNameFlow.tryEmit(loan.borrowerName)
+        
+        return Triple(loan, payments, interestRecords)
+    }
+
+    suspend fun restoreLoanWithPayments(loan: LoanEntity, payments: List<PaymentEntity>, interestRecords: List<MonthlyInterestRecord>) {
+        loanDao.insertLoan(loan)
+        if (interestRecords.isNotEmpty()) {
+            loanDao.insertInterestRecords(interestRecords)
+        }
+        for (payment in payments) {
+            loanDao.insertPayment(payment)
+        }
+        recalculateAndSyncInterestRecords(loan.id)
     }
 
     suspend fun insertPayment(payment: PaymentEntity): Long {

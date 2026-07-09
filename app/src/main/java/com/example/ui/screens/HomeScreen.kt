@@ -70,6 +70,7 @@ fun HomeScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val loans by viewModel.loans.collectAsStateWithLifecycle()
+    val activeFilter by viewModel.activeFilter.collectAsStateWithLifecycle()
     val todayCollection by viewModel.todayCollection.collectAsStateWithLifecycle()
     val upcomingCollection by viewModel.upcomingCollection.collectAsStateWithLifecycle()
     val overdueCollection by viewModel.overdueCollection.collectAsStateWithLifecycle()
@@ -91,8 +92,25 @@ fun HomeScreen(
         viewModel.toggleEmptyState(showEmptyStateDemo)
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.lastDeletedLoanNameFlow.collect { borrowerName ->
+            val result = snackbarHostState.showSnackbar(
+                message = "Loan for $borrowerName deleted",
+                actionLabel = "UNDO",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDeleteLoan()
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             if (isSearchExpanded) {
                 TopAppBar(
@@ -300,6 +318,108 @@ fun HomeScreen(
                                 ),
                                 color = Color.White.copy(alpha = 0.9f)
                             )
+                        }
+                    }
+                }
+            }
+
+            // Filters and Sort Row
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Horizontally scrollable Filter Chips
+                    LazyRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(end = 8.dp)
+                    ) {
+                        val filterPairs = listOf(
+                            AdvancedFilterOption.ALL to "All",
+                            AdvancedFilterOption.CURRENT to "Current",
+                            AdvancedFilterOption.DUE_TODAY to "Pending",
+                            AdvancedFilterOption.OVERDUE to "Overdue",
+                            AdvancedFilterOption.COMPLETED to "Completed"
+                        )
+                        items(filterPairs) { (option, label) ->
+                            val isSelected = activeFilter == option
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.onFilterChanged(option) },
+                                label = { Text(label) },
+                                leadingIcon = if (isSelected) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = RoyalBlue.copy(alpha = 0.15f),
+                                    selectedLabelColor = RoyalBlue,
+                                    selectedLeadingIconColor = RoyalBlue
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.testTag("filter_chip_${label.lowercase()}")
+                            )
+                        }
+                    }
+
+                    // Sort IconButton and DropdownMenu
+                    var showSortMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(
+                            onClick = { showSortMenu = true },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .testTag("sort_loans_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = "Sort Loans",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false },
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            val sortPairs = listOf(
+                                AdvancedFilterOption.NEWEST to "Newest",
+                                AdvancedFilterOption.OLDEST to "Oldest",
+                                AdvancedFilterOption.HIGHEST_INTEREST to "Highest Interest",
+                                AdvancedFilterOption.LOWEST_INTEREST to "Lowest Interest",
+                                AdvancedFilterOption.HIGHEST_PRINCIPAL to "Highest Principal",
+                                AdvancedFilterOption.LOWEST_PRINCIPAL to "Lowest Principal"
+                            )
+                            sortPairs.forEach { (option, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        viewModel.onFilterChanged(option)
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = when (option) {
+                                                AdvancedFilterOption.NEWEST -> Icons.Default.ArrowDownward
+                                                AdvancedFilterOption.OLDEST -> Icons.Default.ArrowUpward
+                                                AdvancedFilterOption.HIGHEST_INTEREST, AdvancedFilterOption.HIGHEST_PRINCIPAL -> Icons.Default.TrendingUp
+                                                else -> Icons.Default.TrendingDown
+                                            },
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = if (activeFilter == option) RoyalBlue else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    colors = MenuDefaults.itemColors(
+                                        textColor = if (activeFilter == option) RoyalBlue else MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    modifier = Modifier.testTag("sort_option_${label.replace(" ", "_").lowercase()}")
+                                )
+                            }
                         }
                     }
                 }

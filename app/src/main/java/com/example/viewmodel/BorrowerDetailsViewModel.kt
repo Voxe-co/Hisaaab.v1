@@ -234,6 +234,17 @@ class BorrowerDetailsViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
+    fun deleteLoan(loanId: Long, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.deleteLoanWithPayments(loanId)
+                onSuccess()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun deleteBorrower(onSuccess: () -> Unit) {
         val currentBorrower = _borrower.value ?: return
         viewModelScope.launch {

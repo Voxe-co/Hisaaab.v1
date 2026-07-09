@@ -46,6 +46,7 @@ import com.example.util.LoanMock
 import com.example.viewmodel.BorrowerDetailsViewModel
 import com.example.viewmodel.TimelineItem
 import java.util.Calendar
+import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 
@@ -123,7 +124,11 @@ fun BorrowerDetailsScreen(
 
     val activeLoans = loans.filter { it.status == "ACTIVE" }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -641,6 +646,27 @@ fun BorrowerDetailsScreen(
                                     Text("Principal Component:", style = MaterialTheme.typography.bodySmall)
                                     Text(DummyData.formatCurrency(principalPortion), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
                                 }
+                                
+                                Spacer(modifier = Modifier.height(6.dp))
+                                HorizontalDivider(color = EmeraldGreen.copy(alpha = 0.15f))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                
+                                Text("Live Forecast Preview:", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = EmeraldGreen)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Updated Outstanding Principal:", style = MaterialTheme.typography.bodySmall)
+                                    Text(DummyData.formatCurrency((remainingPrincipal - principalPortion).coerceAtLeast(0.0)), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Updated Next Month Interest:", style = MaterialTheme.typography.bodySmall)
+                                    val updatedNextInterest = ((remainingPrincipal - principalPortion).coerceAtLeast(0.0) * selectedLoan.interestRate / 100.0)
+                                    Text(DummyData.formatCurrency(updatedNextInterest), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
+                                }
                             }
                         }
                     }
@@ -693,8 +719,9 @@ fun BorrowerDetailsScreen(
                     text = "Confirm Repayment",
                     enabled = isFormValid,
                     onClick = {
+                        val loanId = selectedLoan.id
                         viewModel.receivePayment(
-                            loanId = selectedLoan.id,
+                            loanId = loanId,
                             paymentType = selectedPaymentType,
                             amount = enteredAmount,
                             interestPortion = interestPortion,
@@ -708,6 +735,18 @@ fun BorrowerDetailsScreen(
                         try {
                             view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
                         } catch (e: Exception) {}
+                        
+                        // Show snackbar with 5-second undo option
+                        scope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = "Repayment of ${DummyData.formatCurrency(enteredAmount)} saved",
+                                actionLabel = "UNDO",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.undoLastPayment(loanId)
+                            }
+                        }
                     },
                     modifier = Modifier.testTag("confirm_payment_btn")
                 )
@@ -814,29 +853,55 @@ fun BorrowerDetailsScreen(
     }
 
     // Delete Confirmation Dialog
-    if (showDeleteConfirmDialog) {
+    if (showDeleteConfirmDialog && borrower != null && primaryRawLoan != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
             title = {
                 Text(
-                    text = "Confirm Delete Ledger?",
+                    text = "Delete Loan Agreement?",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
             },
             text = {
-                Text(
-                    text = "This action is permanent and will delete this borrower, all associated loan contracts, and complete historical records. This cannot be undone.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Are you sure you want to delete this loan agreement? This action will remove all historical records.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Borrower Name", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(borrower?.name ?: "", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Principal Amount", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(DummyData.formatCurrency(primaryRawLoan.amount), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = RoyalBlue)
+                        }
+                    }
+                }
             },
             confirmButton = {
                 HisaabButton(
-                    text = "Delete Everything",
+                    text = "Delete",
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = Color.White,
                     onClick = {
-                        viewModel.deleteBorrower {
+                        viewModel.deleteLoan(primaryRawLoan.id) {
                             showDeleteConfirmDialog = false
                             onNavigateBack()
                             try {
