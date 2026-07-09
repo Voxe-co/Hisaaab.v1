@@ -270,8 +270,17 @@ class LoanRepository(private val loanDao: LoanDao) {
         val loan = loanDao.getLoanById(loanId) ?: return@withContext
         val payments = loanDao.getPaymentsForLoanSync(loanId)
 
+        // Calculate total principal paid and update loan status
+        val totalPrincipalPaid = payments.sumOf { it.principalPaid }
+        val isFullyPaid = totalPrincipalPaid >= loan.amount
+        val expectedStatus = if (isFullyPaid) "PAID" else "ACTIVE"
+        if (loan.status != expectedStatus) {
+            loanDao.updateLoan(loan.copy(status = expectedStatus))
+        }
+
         // 1. Calculate how many months need to exist up to the first future month
         val todayMs = System.currentTimeMillis()
+        val endPointMs = if (isFullyPaid) (payments.map { it.paymentDate }.maxOrNull() ?: todayMs) else todayMs
         var monthNumber = 1
         var hasFutureRecord = false
         val totalMonthsList = mutableListOf<Int>()
@@ -284,7 +293,7 @@ class LoanRepository(private val loanDao: LoanDao) {
 
             totalMonthsList.add(monthNumber)
 
-            if (dueDate > todayMs) {
+            if (dueDate > endPointMs) {
                 hasFutureRecord = true
             }
             monthNumber++
