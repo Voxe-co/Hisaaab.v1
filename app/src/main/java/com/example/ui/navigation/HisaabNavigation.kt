@@ -226,7 +226,8 @@ fun MainTabsContainer(
                     }
                     TabDestination.REPORTS -> {
                         ReportsScreen(
-                            viewModel = reportsViewModel
+                            viewModel = reportsViewModel,
+                            homeViewModel = homeViewModel
                         )
                     }
                     TabDestination.SETTINGS -> {

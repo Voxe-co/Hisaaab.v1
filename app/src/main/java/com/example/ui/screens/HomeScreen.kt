@@ -9,14 +9,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +47,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalContext
@@ -80,20 +83,144 @@ fun HomeScreen(
     var showLongPressSheet by remember { mutableStateOf(false) }
     var selectedLoanForActions by remember { mutableStateOf<LoanMock?>(null) }
 
+    var isSearchExpanded by remember { mutableStateOf(false) }
+    var showCollectionsBottomSheet by remember { mutableStateOf(false) }
+    var collectionsSelectedTab by remember { mutableStateOf(0) }
+
     LaunchedEffect(showEmptyStateDemo) {
         viewModel.toggleEmptyState(showEmptyStateDemo)
     }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        topBar = {
+            if (isSearchExpanded) {
+                TopAppBar(
+                    title = {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.onSearchQueryChanged(it) },
+                            placeholder = { Text("Search borrowers, notes...", style = MaterialTheme.typography.bodyMedium) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = RoyalBlue
+                                )
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Clear search",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(100.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            ),
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("appbar_search_input")
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            viewModel.onSearchQueryChanged("")
+                            isSearchExpanded = false
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Collapse Search"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Hisaab",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { isSearchExpanded = true },
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { /* Optional notification action */ },
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToAddLoan,
-                containerColor = RoyalBlue,
+                containerColor = Color.Transparent,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(20.dp),
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
                 modifier = Modifier
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 38.dp)
+                    .shadow(
+                        elevation = 12.dp,
+                        shape = RoundedCornerShape(20.dp),
+                        clip = false,
+                        ambientColor = RoyalBlue.copy(alpha = 0.5f),
+                        spotColor = RoyalBlue
+                    )
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(RoyalBlue, RoyalBlueLight)
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(20.dp)
+                    )
                     .testTag("add_loan_fab")
             ) {
                 Icon(
@@ -109,53 +236,16 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Header
+            // Spacer for clean layout breathing room
             item {
-                Spacer(modifier = Modifier.height(20.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Hisaab Dashboard",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = (-0.5).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = "Premium Lending Intelligence",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Demo State Switcher
-                    IconButton(
-                        onClick = { showEmptyStateDemo = !showEmptyStateDemo },
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Icon(
-                            imageVector = if (showEmptyStateDemo) Icons.Default.FilterListOff else Icons.Default.FilterList,
-                            contentDescription = "Toggle Demo Empty State",
-                            tint = RoyalBlue
-                        )
-                    }
-                }
+                Spacer(modifier = Modifier.height(4.dp))
             }
 
             // Summary Metric Card (Royal Blue Hero)
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -172,44 +262,17 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(100.dp))
-                                    .background(Color.White.copy(alpha = 0.2f))
-                                    .padding(horizontal = 12.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "TOTAL PRINCIPAL OUT",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.sp
-                                    ),
-                                    color = Color.White
-                                )
-                            }
-                            
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AccountBalanceWallet,
-                                    contentDescription = "Wallet Icon",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-
-                        Column {
+                            Text(
+                                text = "Outstanding",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.5.sp
+                                ),
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
                             Text(
                                 text = DummyData.formatCurrency(stats.totalOutstandingPrincipal),
                                 style = MaterialTheme.typography.headlineLarge.copy(
@@ -219,563 +282,25 @@ fun HomeScreen(
                                 ),
                                 color = Color.White
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.TrendingUp,
-                                    contentDescription = "Trending Up",
-                                    tint = Color.White.copy(alpha = 0.9f),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "+${DummyData.formatCurrency(stats.totalMonthlyInterestExpected)} expected this month",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = Color.White.copy(alpha = 0.8f)
-                                )
-                            }
                         }
-                    }
-                }
-            }
-
-            // Real-time calculated dashboard secondary statistics
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Paid Interest Card
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(12.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Column {
-                                Text(
-                                    text = "Int. Received",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = DummyData.formatCurrency(stats.totalCollectedInterest),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = EmeraldGreen
-                                )
-                            }
-                        }
-
-                        // Paid Principal Card
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(12.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Prin. Received",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = DummyData.formatCurrency(stats.totalPrincipalReceived),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = RoyalBlue
-                                )
-                            }
-                        }
-
-                        // Pending Interest Card
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(12.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Pending Int.",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = DummyData.formatCurrency(stats.totalPendingInterest),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (stats.totalPendingInterest > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Overall Due Card
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(12.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Overall Due",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = DummyData.formatCurrency(stats.totalOverallAmountDue),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = RoyalBlue
-                                )
-                            }
-                        }
-
-                        // Today's Collection Card
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(12.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Today's Coll.",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = DummyData.formatCurrency(stats.totalTodaysCollection),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = EmeraldGreen
-                                )
-                            }
-                        }
-
-                        // Active Contracts Card
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(12.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Active Ledgers",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "${stats.activeLoansCount}",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Today's Collection Section
-            if (todayCollection.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Today's Collection",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.3).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        todayCollection.forEach { item ->
-                            HisaabCard(
-                                elevation = 3.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("today_collection_card_${item.loanId}")
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = item.borrowerName,
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(EmeraldGreen.copy(alpha = 0.15f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = "DUE TODAY",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = EmeraldGreen
-                                                    )
-                                                )
-                                            }
-                                            Text(
-                                                text = DummyData.formatDate(item.dueDate),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = DummyData.formatCurrency(item.interestAmount),
-                                            style = MaterialTheme.typography.titleLarge.copy(
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = EmeraldGreen
-                                            )
-                                        )
-                                    }
-
-                                    Button(
-                                        onClick = { viewModel.receiveQuickPayment(item.loanId, item.interestAmount) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen),
-                                        shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.testTag("quick_receive_btn_${item.loanId}")
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Quick Receive",
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Receive",
-                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Recent Activity Section
-            if (recentActivities.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Recent Activity",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.3).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.animateContentSize()
-                    ) {
-                        recentActivities.take(5).forEach { activity ->
-                            RecentActivityRow(activity = activity)
-                        }
-                    }
-                }
-            }
-
-            // Overdue Collection Section
-            if (overdueCollection.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Overdue Collections",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.3).sp
-                        ),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        overdueCollection.forEach { item ->
-                            HisaabCard(
-                                elevation = 2.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("overdue_collection_card_${item.loanId}")
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = item.borrowerName,
-                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${item.daysOverdue} DAYS OVERDUE",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = MaterialTheme.colorScheme.error
-                                                    )
-                                                )
-                                            }
-                                        }
-
-                                        IconButton(onClick = { onNavigateToBorrowerDetails(item.borrowerId) }) {
-                                            Icon(
-                                                imageVector = Icons.Default.ChevronRight,
-                                                contentDescription = "View details",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = "Pending Interest",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = DummyData.formatCurrency(item.pendingInterest),
-                                                style = MaterialTheme.typography.bodyMedium.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.error
-                                                )
-                                            )
-                                        }
-
-                                        Column(horizontalAlignment = Alignment.End) {
-                                            Text(
-                                                text = "Current Cycle Due",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = DummyData.formatCurrency(item.currentDue),
-                                                style = MaterialTheme.typography.bodyMedium.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Upcoming Collection Section
-            if (upcomingCollection.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Upcoming Collections (Next 7 Days)",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.3).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        upcomingCollection.forEach { item ->
-                            HisaabCard(
-                                elevation = 1.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("upcoming_collection_card_${item.loanId}")
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = item.borrowerName,
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = "Due in ${item.daysUntilDue} days (${DummyData.formatDate(item.dueDate)})",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    Text(
-                                        text = DummyData.formatCurrency(item.interestAmount),
-                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = RoyalBlue
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Interactive Custom Search Bar
-            item {
-                HisaabTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.onSearchQueryChanged(it) },
-                    label = "Search by borrower, note, rate, amount...",
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear search"
-                               )
-                            }
-                        }
-                    },
-                    modifier = Modifier.testTag("search_bar")
-                )
-            }
-
-            // Quick Actions Section
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    item {
-                        GlassActionButton(
-                            icon = Icons.Default.Add,
-                            label = "+ New Loan",
-                            onClick = onNavigateToAddLoan
-                        )
-                    }
-                    item {
-                        GlassActionButton(
-                            icon = Icons.Default.CurrencyRupee,
-                            label = "Receive Payment",
-                            onClick = { showReceivePaymentDialog = true }
-                        )
-                    }
-                    item {
-                        GlassActionButton(
-                            icon = Icons.Default.BarChart,
-                            label = "Reports",
-                            onClick = onNavigateToReports
-                        )
-                    }
-                    item {
-                        GlassActionButton(
-                            icon = Icons.Default.Share,
-                            label = "Export",
-                            onClick = { showExportDialog = true }
-                        )
-                    }
-                    item {
-                        GlassActionButton(
-                            icon = Icons.Default.CloudQueue,
-                            label = "Backup",
-                            onClick = { showBackupDialog = true }
-                        )
-                    }
-                    item {
-                        GlassActionButton(
-                            icon = Icons.Default.MenuBook,
-                            label = "Quick Entry",
-                            onClick = { showQuickEntryDialog = true }
-                        )
-                    }
-                }
-            }
-
-            // Advanced Filter Pill Chips Row
-            item {
-                val activeFilter by viewModel.activeFilter.collectAsStateWithLifecycle()
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(AdvancedFilterOption.values()) { option ->
-                        val isSelected = activeFilter == option
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { viewModel.onFilterChanged(option) },
-                            label = { Text(option.label) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = RoyalBlue,
-                                selectedLabelColor = Color.White
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = isSelected,
-                                borderColor = if (isSelected) RoyalBlue else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            Icon(
+                                imageVector = Icons.Default.TrendingUp,
+                                contentDescription = "Trending Up",
+                                tint = EmeraldGreen,
+                                modifier = Modifier.size(18.dp)
                             )
-                        )
+                            Text(
+                                text = "+${DummyData.formatCurrency(stats.totalMonthlyInterestExpected)} expected this month",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
                     }
                 }
             }
@@ -783,19 +308,40 @@ fun HomeScreen(
             // Loans Section Header
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Bottom
                 ) {
-                    Text(
-                        text = "Active Loan Contracts",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Text(
-                        text = "${loans.size} Found",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column {
+                        Text(
+                            text = "Active Loan Contracts",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Manage and track outstanding ledgers",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(RoyalBlue.copy(alpha = 0.1f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${loans.size} ACTIVE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = RoyalBlue
+                            )
+                        )
+                    }
                 }
             }
 
@@ -805,28 +351,18 @@ fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 40.dp, horizontal = 16.dp),
+                            .padding(vertical = 48.dp, horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(RoyalBlue.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AssignmentLate,
-                                contentDescription = "Empty State",
-                                tint = RoyalBlue,
-                                modifier = Modifier.size(40.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        PremiumEmptyStateIllustration()
+                        Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = "No Active Contracts",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            text = "No loans yet",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = (-0.5).sp
+                            ),
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -834,13 +370,58 @@ fun HomeScreen(
                             text = if (searchQuery.isNotEmpty()) {
                                 "No active loans match your filter criteria. Try searching another name."
                             } else {
-                                "Tap the blue plus button (+) below to record your very first monthly interest loan."
+                                "Create a loan contract to manage monthly interest tracking and ledgers."
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
+                        if (searchQuery.isEmpty()) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = onNavigateToAddLoan,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent
+                                ),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier
+                                    .shadow(
+                                        elevation = 8.dp,
+                                        shape = RoundedCornerShape(16.dp),
+                                        clip = false,
+                                        ambientColor = RoyalBlue.copy(alpha = 0.4f),
+                                        spotColor = RoyalBlue
+                                    )
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(RoyalBlue, RoyalBlueLight)
+                                        ),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "Create First Loan",
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp
+                                        ),
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             } else {
@@ -925,6 +506,407 @@ fun HomeScreen(
             }
         )
     }
+
+    if (showCollectionsBottomSheet) {
+        CollectionsBottomSheet(
+            todayCollection = todayCollection,
+            upcomingCollection = upcomingCollection,
+            overdueCollection = overdueCollection,
+            selectedTab = collectionsSelectedTab,
+            onTabSelected = { collectionsSelectedTab = it },
+            onNavigateToBorrowerDetails = onNavigateToBorrowerDetails,
+            onReceiveQuickPayment = { loanId, amount ->
+                viewModel.receiveQuickPayment(loanId, amount)
+            },
+            onDismiss = { showCollectionsBottomSheet = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CollectionsBottomSheet(
+    todayCollection: List<com.example.viewmodel.TodayCollectionItem>,
+    upcomingCollection: List<com.example.viewmodel.UpcomingCollectionItem>,
+    overdueCollection: List<com.example.viewmodel.OverdueCollectionItem>,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    onNavigateToBorrowerDetails: (Long) -> Unit,
+    onReceiveQuickPayment: (Long, Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+        ) {
+            Text(
+                text = "Collections Tracking",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Custom Capsule Tabs
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val tabs = listOf(
+                    "Overdue (${overdueCollection.size})" to MaterialTheme.colorScheme.error,
+                    "Today (${todayCollection.size})" to EmeraldGreen,
+                    "Upcoming (${upcomingCollection.size})" to RoyalBlue
+                )
+
+                tabs.forEachIndexed { index, (label, color) ->
+                    val isSelected = selectedTab == index
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.background
+                                } else {
+                                    Color.Transparent
+                                }
+                            )
+                            .clickable { onTabSelected(index) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold
+                            ),
+                            color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Tab Content List
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 200.dp, max = 400.dp)
+            ) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    when (selectedTab) {
+                        0 -> { // Overdue
+                            if (overdueCollection.isEmpty()) {
+                                item {
+                                    EmptyStateView(
+                                        message = "No overdue payments. Excellent credit health!",
+                                        color = EmeraldGreen
+                                    )
+                                }
+                            } else {
+                                items(overdueCollection) { item ->
+                                    OverdueItemRow(
+                                        item = item,
+                                        onViewDetails = {
+                                            onDismiss()
+                                            onNavigateToBorrowerDetails(item.borrowerId)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        1 -> { // Today
+                            if (todayCollection.isEmpty()) {
+                                item {
+                                    EmptyStateView(
+                                        message = "No collection items due today.",
+                                        color = RoyalBlue
+                                    )
+                                }
+                            } else {
+                                items(todayCollection) { item ->
+                                    TodayItemRow(
+                                        item = item,
+                                        onReceivePayment = {
+                                            onReceiveQuickPayment(item.loanId, item.interestAmount)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        2 -> { // Upcoming
+                            if (upcomingCollection.isEmpty()) {
+                                item {
+                                    EmptyStateView(
+                                        message = "No upcoming payments in the next 7 days.",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                items(upcomingCollection) { item ->
+                                    UpcomingItemRow(
+                                        item = item
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyStateView(message: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 40.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Info",
+                tint = color.copy(alpha = 0.5f),
+                modifier = Modifier.size(36.dp)
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun OverdueItemRow(
+    item: com.example.viewmodel.OverdueCollectionItem,
+    onViewDetails: () -> Unit
+) {
+    HisaabCard(
+        elevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.borrowerName,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${item.daysOverdue} DAYS OVERDUE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Pending Interest",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = DummyData.formatCurrency(item.pendingInterest),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Current Cycle Due",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = DummyData.formatCurrency(item.currentDue),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                }
+            }
+
+            IconButton(
+                onClick = onViewDetails,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "View details",
+                    tint = RoyalBlue
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TodayItemRow(
+    item: com.example.viewmodel.TodayCollectionItem,
+    onReceivePayment: () -> Unit
+) {
+    HisaabCard(
+        elevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.borrowerName,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(EmeraldGreen.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "DUE TODAY",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = EmeraldGreen
+                            )
+                        )
+                    }
+                    Text(
+                        text = DummyData.formatDate(item.dueDate),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = DummyData.formatCurrency(item.interestAmount),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        color = EmeraldGreen
+                    )
+                )
+            }
+
+            Button(
+                onClick = onReceivePayment,
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Quick Receive",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Receive",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun UpcomingItemRow(
+    item: com.example.viewmodel.UpcomingCollectionItem
+) {
+    HisaabCard(
+        elevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = item.borrowerName,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Due in ${item.daysUntilDue} days (${DummyData.formatDate(item.dueDate)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = DummyData.formatCurrency(item.interestAmount),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = RoyalBlue
+                )
+            )
+        }
+    }
 }
 
 @Composable
@@ -946,197 +928,129 @@ fun ActiveLoanRow(
             onClick()
         }
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // 1. Borrower Avatar
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(RoyalBlue.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
             ) {
-                // Left side: Avatar + Info
+                val isBank = loan.borrowerName.contains("bank", ignoreCase = true) || loan.note.contains("bank", ignoreCase = true)
+                Icon(
+                    imageVector = if (isBank) Icons.Default.AccountBalance else Icons.Default.Person,
+                    contentDescription = null,
+                    tint = RoyalBlue,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // 2. Center Content: Name, Principal, Due Date, Current Month
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.weight(1f)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF2C2C2E)),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Text(
+                        text = loan.borrowerName,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                    if (loan.isFavorite) {
                         Icon(
-                            imageVector = if (loan.borrowerName.contains("bank", ignoreCase = true) || loan.note.contains("bank", ignoreCase = true)) Icons.Default.AccountBalance else Icons.Default.Person,
-                            contentDescription = "Borrower Icon",
-                            tint = RoyalBlue,
-                            modifier = Modifier.size(24.dp)
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Favorite",
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(14.dp)
                         )
                     }
+                }
 
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = loan.borrowerName,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            if (loan.isFavorite) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Favorite",
-                                    tint = Color(0xFFF59E0B),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            if (!loan.tag.isNullOrBlank()) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(RoyalBlue.copy(alpha = 0.15f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = loan.tag.uppercase(),
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 9.sp,
-                                            color = RoyalBlue
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
+                // Principal Amount & Month info (Minimal)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = DummyData.formatCurrency(loan.amount),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = RoyalBlue
+                        )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
                         Text(
-                            text = "Lent: ${loan.loanDate}",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = loan.currentMonth,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                // Right side: Amount + Interest Rate
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier.padding(start = 12.dp)
-                ) {
-                    Text(
-                        text = DummyData.formatCurrency(loan.amount),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${loan.interestRate}% Monthly",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 0.5.sp
-                        ),
+                // Due Date
+                Text(
+                    text = "Due: ${loan.loanDate}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // 3. Right Content: Interest due, Status Chip
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Interest due
+                Text(
+                    text = DummyData.formatCurrency(loan.currentInterestDue),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
                         color = EmeraldGreen
                     )
-                }
-            }
+                )
 
-            // Divider to segment the simple interest calculations
-            Divider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-            )
-
-            // Calculations Layout Grid
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Current Month",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = loan.currentMonth,
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-                Column {
-                    Text(
-                        text = "Current Interest",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = DummyData.formatCurrency(loan.currentInterestDue),
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-                Column {
-                    Text(
-                        text = "Pending Interest",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = DummyData.formatCurrency(loan.pendingInterest),
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (loan.pendingInterest > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Overall Amount Due & Status Pill
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Overall Amount Due",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = DummyData.formatCurrency(loan.overallAmountDue),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = RoyalBlue
-                    )
-                }
-
-                // Status Pill
-                val (pillColor, pillText) = when (loan.pillStatus) {
-                    "OVERDUE" -> Pair(MaterialTheme.colorScheme.error, "Overdue")
-                    "DUE" -> Pair(Color(0xFFF59E0B), "Due")
-                    else -> Pair(EmeraldGreen, "Current")
+                // Status chip (Paid / Pending / Overdue)
+                val (statusText, statusBg, statusColor) = when {
+                    loan.pillStatus == "OVERDUE" -> Triple("Overdue", MaterialTheme.colorScheme.error.copy(alpha = 0.15f), MaterialTheme.colorScheme.error)
+                    loan.pendingInterest > 0.0 || loan.pillStatus == "DUE" -> Triple("Pending", Color(0xFFF59E0B).copy(alpha = 0.15f), Color(0xFFF59E0B))
+                    else -> Triple("Paid", EmeraldGreen.copy(alpha = 0.15f), EmeraldGreen)
                 }
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(100.dp))
-                        .background(pillColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .background(statusBg)
+                        .padding(horizontal = 10.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = pillText,
+                        text = statusText,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = pillColor
+                        color = statusColor
                     )
                 }
             }
+
+            // Small Arrow Icon
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Details",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -1270,7 +1184,7 @@ fun GlassActionButton(
 }
 
 @Composable
-fun RecentActivityRow(activity: com.example.database.ActivityLogEntity) {
+private fun RecentActivityRow(activity: com.example.database.ActivityLogEntity) {
     val (icon, color, label) = when (activity.type) {
         "LOAN_CREATED" -> Triple(Icons.Default.Add, RoyalBlue, "New Loan Added")
         "INTEREST_RECEIVED" -> Triple(Icons.Default.CurrencyRupee, EmeraldGreen, "Interest Received")
@@ -1921,6 +1835,188 @@ fun SheetActionRow(
         ) {
             Icon(imageVector = icon, contentDescription = label, tint = color, modifier = Modifier.size(24.dp))
             Text(text = label, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = color)
+        }
+    }
+}
+
+@Composable
+fun PremiumStatCard(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    val clickableModifier: Modifier = if (onClick != null) {
+        Modifier.clickable { onClick() }
+    } else {
+        Modifier
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .then(clickableModifier)
+            .padding(16.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(iconColor.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.2.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+fun PremiumEmptyStateIllustration() {
+    Box(
+        modifier = Modifier
+            .size(160.dp)
+            .padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Glowing background accent
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(RoyalBlue.copy(alpha = 0.15f), Color.Transparent)
+                    )
+                )
+        )
+        // Draw elegant layered finance documents/cards
+        Box(
+            modifier = Modifier
+                .size(90.dp, 60.dp)
+                .graphicsLayer {
+                    rotationZ = -12f
+                    translationX = -20f
+                    translationY = 10f
+                }
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .background(
+                    color = Color(0xFF1C1C1E).copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+        )
+        Box(
+            modifier = Modifier
+                .size(90.dp, 60.dp)
+                .graphicsLayer {
+                    rotationZ = 8f
+                    translationX = 20f
+                    translationY = -5f
+                }
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .background(
+                    color = Color(0xFF1C1C1E).copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+        )
+        // Main focused card
+        Box(
+            modifier = Modifier
+                .size(100.dp, 70.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    clip = false,
+                    ambientColor = RoyalBlue.copy(alpha = 0.3f),
+                    spotColor = RoyalBlue.copy(alpha = 0.5f)
+                )
+                .border(
+                    width = 1.dp,
+                    color = RoyalBlue.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFF1C1C1E), Color(0xFF2C2C2E))
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Glowy target center icon
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(RoyalBlue.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = RoyalBlue,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                // Mock micro data lines
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.size(24.dp, 4.dp).background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(2.dp)))
+                    Box(modifier = Modifier.size(12.dp, 4.dp).background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(2.dp)))
+                }
+            }
         }
     }
 }

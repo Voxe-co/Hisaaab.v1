@@ -33,6 +33,7 @@ import com.example.ui.components.HisaabButton
 import com.example.ui.components.HisaabCard
 import com.example.ui.components.HisaabTextField
 import com.example.ui.theme.RoyalBlue
+import com.example.ui.theme.EmeraldGreen
 import com.example.util.DummyData
 import com.example.viewmodel.AddLoanViewModel
 import java.util.Calendar
@@ -156,28 +157,58 @@ fun AddLoanScreen(
                     )
 
                     // Loan Amount
-                    HisaabTextField(
-                        value = loanAmount,
-                        onValueChange = { viewModel.onLoanAmountChanged(it) },
-                        label = "Principal Amount (₹) *",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Next
-                        ),
-                        modifier = Modifier.testTag("add_loan_amount_input")
-                    )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        HisaabTextField(
+                            value = loanAmount,
+                            onValueChange = { viewModel.onLoanAmountChanged(it) },
+                            label = "Principal Amount (₹) *",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next
+                            ),
+                            modifier = Modifier.testTag("add_loan_amount_input")
+                        )
+                        val isAmountInvalid = loanAmount.isNotBlank() && loanAmount.toDoubleOrNull() == null
+                        AnimatedVisibility(
+                            visible = isAmountInvalid,
+                            enter = fadeIn() + expandVertically(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Text(
+                                text = "Please enter a valid positive number",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                            )
+                        }
+                    }
 
                     // Interest Rate
-                    HisaabTextField(
-                        value = interestRate,
-                        onValueChange = { viewModel.onInterestRateChanged(it) },
-                        label = "Monthly Interest Rate (%) *",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Next
-                        ),
-                        modifier = Modifier.testTag("add_loan_rate_input")
-                    )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        HisaabTextField(
+                            value = interestRate,
+                            onValueChange = { viewModel.onInterestRateChanged(it) },
+                            label = "Monthly Interest Rate (%) *",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next
+                            ),
+                            modifier = Modifier.testTag("add_loan_rate_input")
+                        )
+                        val isRateInvalid = interestRate.isNotBlank() && interestRate.toDoubleOrNull() == null
+                        AnimatedVisibility(
+                            visible = isRateInvalid,
+                            enter = fadeIn() + expandVertically(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Text(
+                                text = "Please enter a valid rate percentage",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                            )
+                        }
+                    }
 
                     // Loan Date (Clickable Selector)
                     Row(
@@ -229,9 +260,69 @@ fun AddLoanScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Live Intel Preview (Stunning simple interest calculation card)
+            AnimatedVisibility(
+                visible = isFormValid,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val amt = loanAmount.toDoubleOrNull() ?: 0.0
+                val rate = interestRate.toDoubleOrNull() ?: 0.0
+                val monthlyCalculated = amt * (rate / 100.0)
+                val annualCalculated = monthlyCalculated * 12.0
 
-            // Save Action
+                HisaabCard(
+                    backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    elevation = 0.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Ledger Interest Forecast",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Monthly Interest Yield",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = DummyData.formatCurrency(monthlyCalculated),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "12-Month Expected Yield",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = DummyData.formatCurrency(annualCalculated),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = EmeraldGreen
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Save Action with polished dynamic state
             HisaabButton(
                 text = if (isSaving) "Saving Contract..." else "Record Agreement",
                 enabled = isFormValid && !isSaving,
@@ -245,7 +336,7 @@ fun AddLoanScreen(
                     .testTag("save_loan_button")
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }

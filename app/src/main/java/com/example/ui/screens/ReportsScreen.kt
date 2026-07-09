@@ -4,14 +4,21 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.QueryStats
+import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +37,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.HisaabCard
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.EmeraldGreen
@@ -37,21 +45,24 @@ import com.example.ui.theme.RichBlack
 import com.example.ui.theme.RoyalBlue
 import com.example.ui.theme.RoyalBlueLight
 import com.example.util.DummyData
+import com.example.viewmodel.HomeViewModel
 import com.example.viewmodel.ReportsViewModel
 
 @Composable
 fun ReportsScreen(
     viewModel: ReportsViewModel,
+    homeViewModel: HomeViewModel,
     modifier: Modifier = Modifier
 ) {
     val stats by viewModel.stats.collectAsState()
     val trendPoints by viewModel.monthlyTrend.collectAsState()
     val distributionPoints by viewModel.principalDistribution.collectAsState()
+    val recentActivities by homeViewModel.recentActivities.collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         // Header
@@ -196,8 +207,8 @@ fun ReportsScreen(
                         val height = size.height
 
                         val spacingX = width / (trendPoints.size - 1)
-                        val maxVal = trendPoints.maxOf { it.value }
-                        val minVal = trendPoints.minOf { it.value }
+                        val maxVal = trendPoints.maxOf { pt -> pt.value }
+                        val minVal = trendPoints.minOf { pt -> pt.value }
                         val diff = if (maxVal - minVal == 0f) 1f else (maxVal - minVal)
 
                         val path = Path()
@@ -364,8 +375,157 @@ fun ReportsScreen(
             }
         }
 
+        // Historical Portfolio Summary Card
+        item {
+            HisaabCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("historical_summary_report_card"),
+                elevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Historical Summary",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "Overall lending history and ledger stats",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.BarChart,
+                        contentDescription = "Historical summary",
+                        tint = RoyalBlue
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HistoricalRow(label = "Total Active Loans", value = "${stats.activeLoansCount}")
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    HistoricalRow(label = "Active Borrowers", value = "${stats.activeBorrowersCount}")
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    HistoricalRow(label = "Total Principal Out", value = DummyData.formatCurrency(stats.totalOutstandingPrincipal))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    HistoricalRow(label = "Total Collected Interest", value = DummyData.formatCurrency(stats.totalCollectedInterest))
+                }
+            }
+        }
+
+        // Recent Activities section
+        if (recentActivities.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Activity Log & History",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.3).sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    recentActivities.forEach { activity ->
+                        RecentActivityRow(activity = activity)
+                    }
+                }
+            }
+        }
+
         item {
             Spacer(modifier = Modifier.height(100.dp))
+        }
+    }
+}
+
+@Composable
+fun HistoricalRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@Composable
+private fun RecentActivityRow(activity: com.example.database.ActivityLogEntity) {
+    val (icon, color, label) = when (activity.type) {
+        "LOAN_CREATED" -> Triple(Icons.Default.Add, RoyalBlue, "New Loan Added")
+        "INTEREST_RECEIVED" -> Triple(Icons.Default.CurrencyRupee, EmeraldGreen, "Interest Received")
+        "PRINCIPAL_RECEIVED" -> Triple(Icons.Default.AccountBalanceWallet, Color(0xFF8B5CF6), "Principal Received")
+        "PAYMENT_REVERSED" -> Triple(Icons.Default.Undo, MaterialTheme.colorScheme.error, "Payment Reversed")
+        else -> Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, "Activity")
+    }
+
+    HisaabCard(
+        elevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(color.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = icon, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text(text = label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    Text(text = activity.borrowerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = if (activity.type == "LOAN_CREATED") {
+                        "- ${DummyData.formatCurrency(activity.amount)}"
+                    } else if (activity.type == "PAYMENT_REVERSED") {
+                        "- ${DummyData.formatCurrency(activity.amount)}"
+                    } else {
+                        "+ ${DummyData.formatCurrency(activity.amount)}"
+                    },
+                    fontWeight = FontWeight.Bold,
+                    color = if (activity.type == "LOAN_CREATED" || activity.type == "PAYMENT_REVERSED") MaterialTheme.colorScheme.error else EmeraldGreen,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(text = DummyData.formatDate(activity.timestamp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
