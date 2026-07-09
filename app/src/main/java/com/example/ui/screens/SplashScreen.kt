@@ -1,8 +1,9 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -16,129 +17,91 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.ui.theme.RichBlack
 import com.example.ui.theme.RoyalBlue
-import com.example.ui.theme.RoyalBlueLight
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(onNavigateToHome: () -> Unit) {
-    val scale = remember { Animatable(0.4f) }
-    val opacity = remember { Animatable(0.0f) }
+    val scale = remember { Animatable(0.9f) }
+    val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(key1 = true) {
-        // Run parallel animations
-        delay(100)
-        scale.animateTo(
-            targetValue = 1.0f,
-            animationSpec = tween(durationMillis = 1000, easing = { t ->
-                // Custom elastic out easing
-                val s = 1.70158f
-                val p = t - 1.0f
-                p * p * ((s + 1f) * p + s) + 1f
-            })
-        )
-    }
-
-    LaunchedEffect(key1 = true) {
-        opacity.animateTo(
-            targetValue = 1.0f,
-            animationSpec = tween(durationMillis = 800)
-        )
-        // Keep splash active for standard preview, then transition
-        delay(1600)
+        launch {
+            scale.animateTo(
+                targetValue = 1.0f,
+                animationSpec = tween(
+                    durationMillis = 1000,
+                    easing = LinearOutSlowInEasing
+                )
+            )
+        }
+        launch {
+            alpha.animateTo(
+                targetValue = 1.0f,
+                animationSpec = tween(
+                    durationMillis = 1000
+                )
+            )
+        }
+        delay(1500)
         onNavigateToHome()
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(RichBlack), // Force rich black for splash to set premium tone
+            .background(Color(0xFF0B0B0F)),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .padding(32.dp)
+                .padding(24.dp)
+                .fillMaxWidth()
                 .scale(scale.value)
-                .alpha(opacity.value)
+                .alpha(alpha.value)
         ) {
-            // High-fidelity custom drawing instead of standard icon to give a beautiful branded signature
+            // Displaying the uploaded logo at the center with its exact blue squircle background
             Box(
                 modifier = Modifier
-                    .size(100.dp)
-                    .padding(bottom = 16.dp),
+                    .size(120.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF3B82F6),
+                                Color(0xFF1D4ED8)
+                            )
+                        ),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                // Drawing an elegant "H" intertwined logo with Royal Blue gradients
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val width = size.width
-                    val height = size.height
-
-                    // Dynamic background soft glow
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(RoyalBlue.copy(alpha = 0.4f), Color.Transparent),
-                            center = center,
-                            radius = width * 0.8f
-                        ),
-                        radius = width * 0.8f
-                    )
-
-                    // Left vertical stem of "H"
-                    drawLine(
-                        brush = Brush.verticalGradient(listOf(RoyalBlue, RoyalBlueLight)),
-                        start = androidx.compose.ui.geometry.Offset(width * 0.3f, height * 0.15f),
-                        end = androidx.compose.ui.geometry.Offset(width * 0.3f, height * 0.85f),
-                        strokeWidth = 12.dp.toPx(),
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round
-                    )
-
-                    // Right vertical stem of "H"
-                    drawLine(
-                        brush = Brush.verticalGradient(listOf(RoyalBlue, RoyalBlueLight)),
-                        start = androidx.compose.ui.geometry.Offset(width * 0.7f, height * 0.15f),
-                        end = androidx.compose.ui.geometry.Offset(width * 0.7f, height * 0.85f),
-                        strokeWidth = 12.dp.toPx(),
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round
-                    )
-
-                    // Crossbar of "H"
-                    drawLine(
-                        brush = Brush.horizontalGradient(listOf(RoyalBlue, RoyalBlueLight)),
-                        start = androidx.compose.ui.geometry.Offset(width * 0.3f, height * 0.5f),
-                        end = androidx.compose.ui.geometry.Offset(width * 0.7f, height * 0.5f),
-                        strokeWidth = 10.dp.toPx(),
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round
-                    )
-
-                    // Orbit ring illustrating rotation/infinite wealth cycle
-                    drawArc(
-                        brush = Brush.linearGradient(listOf(RoyalBlueLight, Color.Transparent)),
-                        startAngle = -45f,
-                        sweepAngle = 270f,
-                        useCenter = false,
-                        topLeft = androidx.compose.ui.geometry.Offset(width * 0.1f, height * 0.1f),
-                        size = androidx.compose.ui.geometry.Size(width * 0.8f, height * 0.8f),
-                        style = Stroke(width = 2.dp.toPx())
-                    )
-                }
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = "Hisaab Logo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "HISAAB",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 6.sp,
+                text = "Hisaab",
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 4.sp,
                     fontFamily = FontFamily.SansSerif
                 ),
                 color = Color.White,
@@ -148,28 +111,28 @@ fun SplashScreen(onNavigateToHome: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Premium Lending Intelligence",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 2.sp,
+                text = "Simple Interest Manager",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 1.5.sp,
                     lineHeight = 22.sp
                 ),
-                color = Color.White.copy(alpha = 0.5f),
+                color = Color.White.copy(alpha = 0.65f),
                 textAlign = TextAlign.Center
             )
         }
 
-        // Elegant minimal version text at bottom
         Text(
-            text = "FOUNDATION v1.0",
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp
+            text = "Version 1.0",
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 2.sp
             ),
             color = Color.White.copy(alpha = 0.3f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 40.dp)
+                .alpha(alpha.value)
+                .padding(bottom = 48.dp)
         )
     }
 }

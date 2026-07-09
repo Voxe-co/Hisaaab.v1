@@ -5,7 +5,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 1. Stylized Diagonal Pen Body -->
+    <!-- Monochrome Pen Body -->
     <path
         android:pathData="M38,70 L62,32"
         android:strokeColor="#FFFFFF"
@@ -13,25 +13,15 @@
         android:strokeLineCap="round"
         android:fillColor="#00000000" />
 
-    <!-- 2. Glossy Gel Cylindrical Pen Body Highlight (Up-Left Offset) -->
-    <path
-        android:pathData="M36.5,69 L60.5,31"
-        android:strokeColor="#EBF3FF"
-        android:strokeWidth="4.5"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:alpha="0.8" />
-
-    <!-- 3. Parallel Pen Clip / Cap Accent -->
+    <!-- Monochrome Pen Clip -->
     <path
         android:pathData="M51,51 L63,32"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="5.5"
         android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:alpha="0.85" />
+        android:fillColor="#00000000" />
 
-    <!-- 4. Fluent Cursive Handwritten Signature Wave under Pen Tip -->
+    <!-- Monochrome Signature Wave -->
     <path
         android:pathData="M35,74 C35,74 41,74 43,74 C46,74 48,68 49,60 C50,52 51,52 52,60 C53,68 55,73 57,73 C59,73 60,67 61,61 C62,55 63,55 64,61 C65,67 67,71 70,71 C73,71 74,71 74,71"
         android:strokeColor="#FFFFFF"
