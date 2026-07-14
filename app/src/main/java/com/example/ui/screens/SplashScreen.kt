@@ -59,7 +59,14 @@ fun SplashScreen(onNavigateToHome: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0B0B0F)),
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFDCE9FC), // Soft premium light-blue tone matching the logo background
+                        Color(0xFFF1F5F9)  // Clean off-white feel
+                    )
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -71,27 +78,26 @@ fun SplashScreen(onNavigateToHome: () -> Unit) {
                 .scale(scale.value)
                 .alpha(alpha.value)
         ) {
-            // Displaying the uploaded logo at the center with its exact blue squircle background
+            // Displaying the uploaded logo at the center with its exact blue squircle background and soft premium glow
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF3B82F6),
-                                Color(0xFF1D4ED8)
+                                Color(0xFF4C85F6), // Exact light blue top from the logo
+                                Color(0xFF3572ED)  // Exact vibrant blue bottom from the logo
                             )
                         ),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
-                    ),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp)
+                    )
+                    .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_launcher_foreground),
                     contentDescription = "Hisaab Logo",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(8.dp)
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
@@ -104,7 +110,7 @@ fun SplashScreen(onNavigateToHome: () -> Unit) {
                     letterSpacing = 4.sp,
                     fontFamily = FontFamily.SansSerif
                 ),
-                color = Color.White,
+                color = Color(0xFF0F172A), // Dark premium slate color for beautiful contrast
                 textAlign = TextAlign.Center
             )
 
@@ -117,7 +123,7 @@ fun SplashScreen(onNavigateToHome: () -> Unit) {
                     letterSpacing = 1.5.sp,
                     lineHeight = 22.sp
                 ),
-                color = Color.White.copy(alpha = 0.65f),
+                color = Color(0xFF475569), // Readable dark slate color
                 textAlign = TextAlign.Center
             )
         }
@@ -128,7 +134,7 @@ fun SplashScreen(onNavigateToHome: () -> Unit) {
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 2.sp
             ),
-            color = Color.White.copy(alpha = 0.3f),
+            color = Color(0xFF94A3B8), // Soft muted contrast
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .alpha(alpha.value)

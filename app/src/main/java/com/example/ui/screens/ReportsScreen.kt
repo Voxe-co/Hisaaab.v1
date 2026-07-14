@@ -193,6 +193,39 @@ fun ReportsScreen(
                     )
                 }
 
+                val maxTrendVal = trendPoints.maxOfOrNull { it.value } ?: 0f
+                val avgTrendVal = trendPoints.map { it.value }.average().toFloat()
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(RoyalBlue.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Peak: " + DummyData.formatCurrency(maxTrendVal.toDouble()),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = RoyalBlue
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Avg: " + DummyData.formatCurrency(avgTrendVal.toDouble()),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Custom Line Drawing on Canvas
@@ -331,44 +364,76 @@ fun ReportsScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                distributionPoints.forEach { pt ->
-                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                if (distributionPoints.size == 1 && (distributionPoints.first().label == "No Active Loans" || distributionPoints.first().label == "Loading")) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = pt.label,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onBackground
+                            Icon(
+                                imageVector = Icons.Default.PieChart,
+                                contentDescription = "No exposure",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.size(48.dp)
                             )
                             Text(
-                                text = "${pt.value.toInt()}%",
+                                text = "No Active Lending Exposure",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = RoyalBlue
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Lend to active borrowers to view risk distribution.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        // Bar distribution rendering
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        ) {
+                    }
+                } else {
+                    distributionPoints.forEach { pt ->
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = pt.label,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "${pt.value.toInt()}%",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = RoyalBlue
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            // Bar distribution rendering
                             Box(
                                 modifier = Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(pt.value / 100f)
+                                    .fillMaxWidth()
+                                    .height(8.dp)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(RoyalBlue, RoyalBlueLight)
+                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .fillMaxWidth((pt.value / 100f).coerceIn(0f, 1f))
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                listOf(RoyalBlue, RoyalBlueLight)
+                                            )
                                         )
-                                    )
-                            )
+                                )
+                            }
                         }
                     }
                 }

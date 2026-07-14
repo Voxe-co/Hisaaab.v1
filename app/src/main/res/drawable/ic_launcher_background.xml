@@ -15,8 +15,8 @@
                 android:endY="108"
                 android:type="linear">
                 <!-- Vibrant primary royal blue gradient matching the uploaded logo's branding -->
-                <item android:color="#3B82F6" android:offset="0.0" />
-                <item android:color="#1D4ED8" android:offset="1.0" />
+                <item android:color="#4C85F6" android:offset="0.0" />
+                <item android:color="#3572ED" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
